@@ -1,9 +1,8 @@
-// src/ai-analyzer.js
 
 export async function analyzeIssue(title, body, env, options = {}) {
   const { useMock = false } = options;
 
-  // 🎭 MODE MOCK : Pour le développement sans quota
+  //  MODE MOCK : Pour le développement sans quota
   if (useMock || !env.GEMINI_API_KEY) {
     console.log("🎭 Using MOCK mode for AI analysis");
     await new Promise(r => setTimeout(r, 300)); // Simule un délai réseau
@@ -16,7 +15,7 @@ export async function analyzeIssue(title, body, env, options = {}) {
     };
   }
 
-  // 🤖 MODE RÉEL : Appel à Gemini
+  //  MODE RÉEL : Appel à Gemini
   const MODEL_NAME = "gemini-2.0-flash-lite"; // Modèle léger et gratuit
   const prompt = `
 Réponds UNIQUEMENT avec ce JSON valide (pas de texte avant/après, pas de markdown) :

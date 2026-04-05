@@ -1,13 +1,14 @@
--- Users Table
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  phone_number TEXT UNIQUE NOT NULL,
+  chat_id TEXT UNIQUE NOT NULL,
+  username TEXT,
+  first_name TEXT,
   tech_stack TEXT DEFAULT '[]',
+  notification_enabled BOOLEAN DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  is_active BOOLEAN DEFAULT 1
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Issues table
 CREATE TABLE IF NOT EXISTS issues (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   github_id INTEGER UNIQUE NOT NULL,
@@ -21,7 +22,6 @@ CREATE TABLE IF NOT EXISTS issues (
   sent_to_users BOOLEAN DEFAULT 0
 );
 
--- Bind table(Which Issues are sent to which users)
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -30,3 +30,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (issue_id) REFERENCES issues(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_chat_id ON users(chat_id);
+CREATE INDEX IF NOT EXISTS idx_issues_tech_stack ON issues(tech_stack);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
