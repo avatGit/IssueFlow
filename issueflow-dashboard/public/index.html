@@ -1,12 +1,57 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hello, World!</title>
-	</head>
-	<body>
-		<h1 id="heading">Hello, World!</h1>
-		<p>This page comes from a static asset stored at `public/index.html` as configured in `wrangler.jsonc`.</p>
-	</body>
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>IssueFlow</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+
+	<script>
+		tailwind.config = {
+			theme: {
+				extend: {
+					colors: {
+						primary: '#25633b',
+						secondary: '#64748b',
+						success: '#22c55e',
+					}
+				}
+			}
+		}
+	</script>
+
+	<style>
+		/* Hide Alpine elements before loading */
+		[x-cloak] {
+			display: none !important;
+		}
+
+		.fade-enter {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+	</style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen font-sans">
+	<div x-data="app()" class="max-w-2x1 mx-auto px-4 py-6">
+
+		<header class="flex items-center justify-between mb-8">
+			<div class="flex items-center gap-3">
+				<div
+					class="w-10 h-10 rouded-lg bg-primary flex items-center justify-center text-white font-bold text-lg">
+					🌟
+				</div>
+				<div>
+					<h1 class="text-xl font-bold">IssueFlow</h1>
+					<p class="text-sm text-secondary">Issues Github</p>
+				</div>
+			</div>
+		</header>
+	</div>
+
+</body>
+
 </html>
