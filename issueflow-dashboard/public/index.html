@@ -10,6 +10,7 @@
 
 	<script>
 		tailwind.config = {
+			darkMode: 'class',
 			theme: {
 				extend: {
 					colors: {
@@ -52,12 +53,12 @@
 </head>
 
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen font-sans">
-	<div x-data="app()" class="max-w-2x1 mx-auto px-4 py-6">
+	<div x-data="app()" x-init="init()" class="max-w-2xl mx-auto px-4 py-6">
 
 		<header class="flex items-center justify-between mb-8">
 			<div class="flex items-center gap-3">
 				<div
-					class="w-10 h-10 rouded-lg bg-primary flex items-center justify-center text-white font-bold text-lg">
+					class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg">
 					🌟
 				</div>
 				<div>
@@ -67,9 +68,9 @@
 			</div>
 			<!-- Button light/dark Theme -->
 			<button @click="toggleTheme()"
-				class="p-2 rouded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+				class="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
 				aria-label="Changer le theme">
-				<span x-text="darMode ? '☀️' : '🌙'"></span></button>
+				<span x-text="darkMode ? '☀️' : '🌙'"></span></button>
 		</header>
 
 		<!-- Navigation -->
@@ -221,7 +222,8 @@
 				<div x-show="!loading && issues.length === 0" class="text-center py-8 text-secondary">
 					<p>Aucune issue récente correspondant à tes préférences.</p>
 					<p class="text-sm mt-1">Reviens plus tard ou élargis tes technos dans <button
-							@click="$root.navigate('setup')" class="text-primary hover:underline">Préférences</button>.
+							@click="$root.navigateTo('setup')"
+							class="text-primary hover:underline">Préférences</button>.
 					</p>
 				</div>
 
@@ -282,9 +284,9 @@
 					</div>
 					<!-- Toggle switch style -->
 					<button @click="toggleNotifications()"
-						:class="notificationsEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'"
+						:class="notificationEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'"
 						class="relative w-12 h-6 rounded-full transition">
-						<span :class="notificationsEnabled ? 'translate-x-6' : 'translate-x-1'"
+						<span :class="notificationEnabled ? 'translate-x-6' : 'translate-x-1'"
 							class="absolute top-1 w-4 h-4 bg-white rounded-full transition"></span>
 					</button>
 				</div>
@@ -316,6 +318,244 @@
 			</button>
 		</section>
 	</div>
+
+	<script>
+		const API_BASE = 'https://issue-flow-backend.dankfd99.workers.dev/api'
+
+		const AVAILABLE_TECHS = [
+			"JavaScript", "TypeScript", "Python", "Java", "Go", "Rust",
+			"React", "Vue", "Angular", "Svelte",
+			"Node.js", "Django", "Flask", "Spring",
+			"SQL", "MongoDB", "PostgreSQL",
+			"Docker", "Kubernetes", "AWS", "Cloudflare"
+		];
+
+		function app() {
+			return {
+				currentView: 'home',
+				chatId: null,
+				darkMode: false,
+
+				init() {
+					const urlParams = new URLSearchParams(window.location.search);
+					this.chatId = urlParams.get('chat_id');
+
+					// Detect user prefered theme
+					this.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					this.applyTheme();
+
+					if (this.chatId) {
+						this.navigateTo('setup');
+					}
+
+					window.addEventListener('hashchange', () => {
+						const hash = window.location.hash.slice(2);
+						if (['home', 'setup', 'alerts', 'settings', 'success'].includes(hash)) {
+							this.currentView = hash;
+						}
+					});
+				},
+
+				// Navigation between the Views
+				navigateTo(view) {
+					this.currentView = view;
+					window.location.hash = `#/${view}`;
+
+					// For mobile
+					window.scrollTo({ top: 0, behavior: 'smooth' });
+				},
+
+				toggleTheme() {
+					this.darkMode = !this.darkMode;
+					this.applyTheme();
+				},
+
+				applyTheme() {
+					if (this.darkMode) {
+						document.documentElement.classList.add('dark');
+					} else {
+						document.documentElement.classList.remove('dark');
+					}
+				}
+			};
+		}
+
+		function setupComponent() {
+			return {
+				availableTechs: AVAILABLE_TECHS,
+				selectedTechs: [],
+				saving: false,
+				saved: false,
+				error: null,
+				chatId: null,
+
+				initSetup() {
+					const urlParams = new URLSearchParams(window.location.search);
+					this.chatId = urlParams.get('chat_id');
+
+					console.log("Setup component: chatId =", this.chatId);
+					if (this.chatId) {
+						this.loadUserPreferences();
+					}
+				},
+
+				async loadUserPreferences() {
+					try {
+						const response = await fetch(`${API_BASE}/user/${this.chatId}`);
+						if (response.ok) {
+							const user = await response.json();
+							this.selectedTechs = user.tech_stack || [];
+						}
+					} catch (err) {
+						console.warn('Could not load user Preferences: ', err);
+					}
+				},
+
+				// Save preferences
+				async savePreferences() {
+					if (this.selectedTechs.length === 0) {
+						this.error = 'Selectionne au moins une techno';
+						return;
+					}
+
+					this.saving = true;
+					this.error = null;
+
+					try {
+						const response = await fetch(`${API_BASE}/user/${this.chatId}`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								tech_stack: this.selectedTechs,
+								notification_enabled: true
+							})
+						});
+
+						if (!response.ok) {
+							throw new Error('Erreur Serveur')
+						}
+
+						this.saved = true;
+						this.saving = false;
+
+						setTimeout(() => {
+							window.location.hash = '#/success';
+						}, 1500);
+
+					} catch (err) {
+						this.error = 'Impossible d\'enregistrer. Reessaie plus tard.';
+						this.saving = false;
+						console.log('Save error: ', err);
+					}
+				}
+
+
+			};
+		}
+
+		//COMPOSANT ALERTS : logique d'affichage des issues
+		function alertsComponent() {
+			return {
+				issues: [],
+				loading: true,
+				chatId: null,
+
+				initAlerts() {
+					const urlParams = new URLSearchParams(window.location.search);
+					this.chatId = urlParams.get('chat_id');
+
+					console.log("Alerts component: chatId =", this.chatId);
+					this.loadIssues();
+				},
+
+				async loadIssues() {
+					this.loading = true;
+
+					try {
+						// (MVP) Get all issues
+						const response = await fetch(`${API_BASE}/issues?limit=10`);
+						if (!response.ok) {
+							throw new Error('Erreur de chargement');
+						}
+
+						const data = await response.json();
+						this.issues = data.issues || [];
+					} catch (err) {
+						console.error('Load issues error: ', err);
+						this.issues = [];
+					} finally {
+						this.loading = false;
+					}
+				}
+			};
+		}
+
+		//COMPOSANT SETTINGS : logique des paramètres utilisateur
+		function settingsComponent() {
+			return {
+				notificationEnabled: true,
+				chatId: null,
+
+				initSettings() {
+					const urlParams = new URLSearchParams(window.location.search);
+					this.chatId = urlParams.get('chat_id');
+
+					console.log("Settings component: chatId =", this.chatId); if (this.chatId) {
+						this.loadSettings();
+					}
+				},
+
+				async loadSettings() {
+					try {
+						const response = await fetch(`${API_BASE}/user/${this.chatId}`);
+						if (response.ok) {
+							const user = await response.json();
+							this.notificationEnabled = user.notification_enabled !== false;
+						}
+					} catch (err) {
+						console.warn('Could not load settings: ', err);
+					}
+				},
+
+				async toggleNotifications() {
+					this.notificationEnabled = !this.notificationEnabled;
+
+					try {
+						await fetch(`${API_BASE}/user/${this.chatId}`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								notification_enabled: this.notificationEnabled
+							})
+						});
+					} catch (err) {
+						console.error('Toggle error: ', err);
+						this.notificationEnabled = !this.notificationEnabled;
+					}
+				},
+
+				async unsubscribe() {
+					if (!confirm('Es-tu sur de vouloir te desinscire ? Tu ne recevras plus aucune alerte.')) {
+						return;
+					}
+
+					try {
+						await fetch(`${API_BASE}/user/${this.chatId}`, {
+							method: 'DELETE'
+						});
+
+						// GO back To Home
+						window.location.hash = '#/home';
+						alert('Tu as ete desinscrit. Merci d\'avoir utiliser IssueFlow !');
+					} catch (err) {
+						console.error('Unscubscribe error: ', err);
+						alert('Erreur lors de la desinscription. Reessaie plus tard.');
+					}
+				}
+			}
+		};
+
+	</script>
 
 </body>
 
